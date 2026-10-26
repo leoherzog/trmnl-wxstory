@@ -1,0 +1,146 @@
+{% template main %}
+{% comment %}
+The office's Weather Story at every size: the graphic, plus its description
+where the layout has room beside or below it.
+Parameters:
+- office: { id, name } from the transform, or nil when no office is set
+- story: { title, description, image, updated, number }, or nil with error set
+- count: how many stories the office has posted
+- error: why there is no story
+- size: 'full', 'half_horizontal', 'half_vertical' or 'quadrant'
+- trmnl: the global trmnl object, which a render scope does not inherit
+{% endcomment %}
+{% assign fields = trmnl.plugin_settings.custom_fields_values %}
+{% assign offset = trmnl.user.utc_offset | default: 0 %}
+{% if fields.timemode == '24_hour' %}
+  {% assign time_mask = '%H:%M' %}
+{% else %}
+  {% assign time_mask = '%-I:%M %p' %}
+{% endif %}
+
+{% if story == nil %}
+  <div class="layout layout--col layout--center gap">
+    <span class="title title--small lg:title--base text--center">{{ office.name | default: 'NWS Weather Story' | escape }}</span>
+    <span class="description lg:description--large text--center">{{ error | default: 'No data yet.' | escape }}</span>
+  </div>
+  {% render 'title_bar', office: office, size: size, trmnl: trmnl %}
+{% else %}
+  {% comment %} The update time reads as a clock time today and as a date before that. {% endcomment %}
+  {% assign updated_label = nil %}
+  {% if story.updated %}
+    {% assign updated_local = story.updated | date: '%s' | plus: offset %}
+    {% assign updated_day = updated_local | date: '%Y%m%d' %}
+    {% assign today = trmnl.system.timestamp_utc | plus: offset | date: '%Y%m%d' %}
+    {% if updated_day == today %}
+      {% assign updated_label = updated_local | date: time_mask %}
+    {% else %}
+      {% assign updated_label = updated_local | date: '%b %-d' %}
+    {% endif %}
+  {% endif %}
+  {% assign position = nil %}
+  {% if fields.story == 'rotate' and count > 1 %}
+    {% assign position = story.number | append: ' of ' | append: count %}
+  {% endif %}
+  {% assign alt = story.title | default: 'Weather Story' | escape %}
+
+  {% case size %}
+  {% when 'full' %}
+    <div class="layout layout--col gap--medium portrait:layout--top">
+      <img class="image image-dither image--contain w--full h--full portrait:h--auto" src="{{ story.image }}" alt="{{ alt }}">
+      {% if story.description %}
+        <span class="description description--large lg:description--xlarge hidden portrait:block" data-clamp="12">{{ story.description | escape }}</span>
+      {% endif %}
+    </div>
+  {% when 'half_horizontal' %}
+    <div class="layout layout--row layout--left gap--medium">
+      <img class="image image-dither image--contain h--full" src="{{ story.image }}" alt="{{ alt }}">
+      {% if story.description %}
+        <span class="description description--large lg:description--xlarge stretch-x" data-clamp="6" data-clamp-lg="7">{{ story.description | escape }}</span>
+      {% endif %}
+    </div>
+  {% when 'half_vertical' %}
+    <div class="layout layout--col layout--top gap--medium">
+      <img class="image image-dither image--contain w--full" src="{{ story.image }}" alt="{{ alt }}">
+      {% if story.description %}
+        <span class="description description--large lg:description--xlarge" data-clamp="8" data-clamp-lg="9">{{ story.description | escape }}</span>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="layout">
+      <img class="image image-dither image--contain w--full h--full" src="{{ story.image }}" alt="{{ alt }}">
+    </div>
+  {% endcase %}
+  {% render 'title_bar', office: office, story_title: story.title, position: position, updated: updated_label, size: size, trmnl: trmnl %}
+{% endif %}
+{% endtemplate %}
+
+{% template title_bar %}
+{% comment %}
+Parameters:
+- office: { id, name }, or nil; the plugin's name stands in when nil
+- story_title: the story title, or nil
+- position: "2 of 3" while rotating, or nil
+- updated: when the graphic was replaced, already formatted, or nil
+- size: the layout size; half_vertical, quadrant and portrait screens show the office alone
+- trmnl: the global trmnl object
+{% endcomment %}
+{% if office.name %}
+  {% assign title = 'NWS ' | append: office.name %}
+{% else %}
+  {% assign title = trmnl.plugin_settings.instance_name | default: 'NWS Weather Story' %}
+{% endif %}
+{% assign instance = story_title | default: '' %}
+{% if position %}
+  {% if instance != '' %}{% assign instance = instance | append: ' · ' %}{% endif %}
+  {% assign instance = instance | append: position %}
+{% endif %}
+{% if updated %}
+  {% if instance != '' %}{% assign instance = instance | append: ' · ' %}{% endif %}
+  {% assign instance = instance | append: 'Updated ' | append: updated %}
+{% endif %}
+<div class="title_bar">
+  {% comment %} US National Weather Service logo (Wikimedia Commons US-NationalWeatherService-Logo.svg), coordinates rounded. {% endcomment %}
+  <svg class="image" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+    <path fill="#fff" fill-rule="evenodd" stroke="#fff" stroke-width="0.4" d="M200 0C310 0 400 90 400 200C400 310 310 400 200 400C90 400 0 310 0 200C0 90 90 0 200 0"/>
+    <path fill="#bfeafb" fill-rule="evenodd" d="M81 172L82 170L83 166L85 159L88 151L93 141L101 130L110 118L123 105L139 94L156 86L174 81L193 79L211 79L228 82L243 87L255 93L265 100L273 106L279 110L283 114L285 116L287 118L288 119L288 119L289 120L291 123L294 127L297 132L301 137L304 142L307 147L309 151L312 159L314 168L314 171L315 174L315 176L316 176Z"/>
+    <path fill="#bfeafb" fill-rule="evenodd" stroke="#1f4fa2" stroke-width="1.2" d="M107 281L107 281L110 283L113 284L117 286L128 289L139 291L150 290L159 287L163 285L166 283L167 282L168 282L169 282L171 284L175 285L179 287L189 290L198 291L207 289L217 286L221 284L225 283L227 282L228 281L229 282L231 283L234 285L238 287L242 288L247 290L252 291L257 291L268 289L278 286L282 284L285 283L287 282L288 282L287 284L282 288L275 295L265 303L252 310L237 317L219 322L199 324L179 322L160 318L144 311L131 303L121 295L113 288L108 283Z"/>
+    <path fill="none" stroke="#1f4fa2" stroke-width="2.4" d="M302 140L301 140L300 141L297 142L294 143L286 148L277 153L267 159L258 166L251 173L246 181M254 93L225 147M196 79L196 146M93 141L95 142L96 143L99 144L102 145L110 149L120 155L129 161L139 169L146 177L151 185"/>
+    <path fill="#1f4fa2" fill-rule="evenodd" stroke="#4c416e" stroke-width="0.4" d="M75 203L74 203L73 205L70 208L68 211L66 215L64 220L64 225L64 231L66 236L69 240L72 243L76 245L79 246L83 247L85 247L87 247L94 247L100 245L103 244L105 243L107 241L107 240L108 241L110 244L114 248L120 252L126 255L132 258L135 258L139 259L143 259L148 258L152 258L154 258L155 257L157 256L159 257L163 261L169 266L177 269L192 272L207 273L214 272L222 270L228 268L231 266L233 266L237 267L242 268L247 268L252 266L256 262L259 258L260 254L260 254L262 254L265 256L269 256L274 256L279 254L283 252L287 247L288 244L289 240L288 235L287 233L286 232L285 231L286 231L288 231L290 231L293 231L299 231L305 230L309 229L312 228L314 226L316 225L318 223L320 219L322 214L324 208L325 207L327 206L330 204L333 202L334 199L335 196L336 192L335 187L333 181L330 176L326 173L325 172L324 172L321 171L317 170L312 170L307 171L303 172L301 173L300 174L300 173L299 170L297 167L292 165L289 164L286 165L283 167L283 167L282 166L280 163L277 159L273 154L264 145L252 137L240 132L227 129L225 128L222 128L217 128L210 129L205 130L202 131L199 132L198 132L197 131L193 129L189 128L185 126L180 125L174 125L162 126L154 128L149 131L148 133L147 134L144 135L142 139L139 143L136 148L135 151L134 154L134 155L133 155L131 155L128 155L125 156L123 157L121 159L120 160L119 161L118 161L116 160L113 160L110 159L104 160L99 160L94 162L87 164L81 168L76 174L73 179L71 183L71 186L71 190L72 196Z"/>
+    <path fill="none" stroke="#1f4fa2" stroke-width="3.5" d="M319 201C319 134 264 79 198 79C131 79 77 134 77 201C77 269 131 324 198 324C264 324 319 269 319 201Z"/>
+    <path fill="#fff" fill-rule="evenodd" stroke="#1f4fa2" stroke-width="1.5" d="M99 99L139 99L180 147L171 147L218 200L205 200L253 251L245 253L292 303L216 254L237 243L180 203L201 192L142 152L163 141Z"/>
+    <path fill="#ce0f3e" fill-rule="evenodd" stroke="#ed1c24" stroke-width="0.4" d="M201 352L205 365L219 365L208 373L212 386L201 378L190 386L194 373L183 365L197 365Z"/>
+    <g fill="#1f4fa2" fill-rule="evenodd" stroke="#485683" stroke-width="0.4">
+      <path d="M153 352L156 361L165 361L158 366L160 375L153 369L146 375L149 366L142 361L151 361Z"/>
+      <path d="M244 352L247 361L255 361L248 366L251 375L244 369L237 375L240 366L233 361L241 361Z"/>
+    </g>
+    <g fill="#ce0f3e" fill-rule="evenodd">
+      <path d="M127 339L105 369L99 365L101 336L86 356L81 352L102 322L108 326L107 355L121 335Z"/>
+      <path d="M71 311L64 324L78 319ZM74 291L79 297L75 305L84 316L93 313L98 319L60 332L55 326Z"/>
+      <path d="M70 283L43 299L48 308L43 311L28 286L33 283L39 292L66 277Z"/>
+      <path d="M59 263L24 276L21 269L56 256Z"/>
+      <path d="M34 246C38 246 41 244 43 242C44 239 45 237 45 234C44 231 42 229 40 227C38 226 34 225 30 226C26 227 23 228 21 230C19 233 19 235 19 238C20 241 21 244 24 245C26 247 29 247 34 246M35 254C31 255 28 255 25 254C23 253 22 253 20 251C18 250 17 249 16 247C14 245 13 242 13 239C12 234 13 229 16 226C18 222 23 219 29 218C35 217 40 218 44 221C47 223 50 227 51 233C52 238 51 243 48 247C45 250 41 253 35 254"/>
+      <path d="M47 209L9 206L10 199L36 185L11 184L11 177L49 179L48 187L23 200L47 202Z"/>
+      <path d="M43 147L28 148L39 157ZM61 139L59 147L50 147L45 161L52 167L49 174L18 148L21 141Z"/>
+      <path d="M63 135L32 115L36 108L62 125L72 109L78 113Z"/>
+      <path d="M104 84L76 58L83 54L102 72L93 47L101 42L121 60L111 35L118 31L130 67L124 72L102 52L111 80Z"/>
+      <path d="M142 62L133 25L160 18L161 24L142 30L144 38L162 33L164 39L145 44L148 54L168 48L170 54Z"/>
+      <path d="M195 37L189 23L185 37ZM210 50L202 51L198 43L183 44L181 53L173 53L185 15L193 14Z"/>
+      <path d="M219 53L222 22L211 20L212 14L242 18L241 24L230 23L226 53Z"/>
+      <path d="M242 57L255 22L262 24L257 38L271 43L276 30L283 32L270 67L263 65L269 49L255 44L249 59Z"/>
+      <path d="M277 72L298 41L321 57L317 62L301 50L296 57L311 68L308 73L292 62L287 71L304 83L300 88Z"/>
+      <path d="M326 84L330 88C332 91 334 93 334 93C335 94 336 94 337 94C338 94 339 93 340 93C341 92 341 91 341 90C341 89 341 88 341 87C340 86 339 85 337 82L333 78ZM305 92L333 68L344 80C346 83 348 86 348 88C349 89 349 91 348 93C348 95 347 97 345 98C343 100 341 101 338 101C336 101 333 100 331 97C331 99 331 101 331 103C331 104 330 106 329 110L326 118L320 111L323 102C324 98 325 96 325 95C325 94 325 93 325 92C324 91 324 90 322 89L321 88L310 98Z"/>
+      <path d="M354 142L357 149C354 150 353 152 352 153C351 155 351 157 352 159C352 161 353 163 355 164C356 165 357 165 359 165C360 164 360 164 361 163C361 163 361 162 362 160C362 159 362 157 362 154C362 150 362 147 363 145C364 142 366 140 369 140C371 139 373 139 375 140C377 140 378 142 380 143C381 145 382 147 383 150C384 155 384 158 383 161C381 164 379 166 376 167L373 160C375 159 376 158 377 157C377 155 377 154 377 152C376 149 375 148 374 147C374 146 373 146 372 146C371 147 370 147 370 148C369 149 369 152 369 155C369 159 369 162 369 164C368 166 367 168 366 169C365 170 363 171 361 172C359 173 357 172 354 172C352 171 351 170 349 168C348 166 347 164 346 161C344 156 345 152 346 149C347 146 350 144 354 142"/>
+      <path d="M351 181L389 179L391 206L384 207L383 187L375 187L376 206L370 207L368 188L358 188L360 209L353 210Z"/>
+      <path d="M372 228L371 233C371 237 370 239 371 240C371 241 371 242 372 242C372 243 373 243 374 243C376 244 377 244 378 243C379 242 379 242 380 240C380 240 380 238 381 235L382 229ZM352 216L389 223L386 239C386 243 385 245 384 247C383 249 382 250 380 251C378 251 376 252 374 251C371 251 369 250 367 248C366 246 365 243 365 240C364 241 363 242 361 243C360 244 358 245 355 246L347 250L348 241L357 237C360 235 362 234 363 234C364 233 365 232 365 232C366 231 366 230 366 228L366 227L351 224Z"/>
+      <path d="M341 261L381 265L377 272L348 269L370 289L366 297L338 269Z"/>
+      <path d="M330 284L362 304L357 310L326 290Z"/>
+      <path d="M316 323L309 327C307 323 306 320 306 317C307 313 308 310 311 307C315 304 319 302 323 302C328 302 333 304 337 308C341 313 344 317 344 322C344 327 342 331 339 335C336 338 332 340 328 340C326 340 323 339 320 338L324 331C326 332 328 333 330 332C331 332 333 331 334 330C336 328 337 325 337 323C337 320 335 317 332 314C328 311 325 309 323 309C320 309 318 310 316 312C315 313 314 315 314 317C314 319 314 321 316 323"/>
+      <path d="M296 323L316 355L293 370L290 365L307 354L302 347L286 357L283 352L299 341L293 333L276 344L272 339Z"/>
+    </g>
+  </svg>
+  <span class="title">{{ title | escape }}</span>
+  {% if instance != '' and size != 'half_vertical' and size != 'quadrant' %}
+    <span class="instance portrait:hidden">{{ instance | escape }}</span>
+  {% endif %}
+</div>
+{% endtemplate %}

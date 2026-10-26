@@ -1,0 +1,29 @@
+- keyname: author_bio
+  name: About This Plugin
+  field_type: author_bio
+  category: environment,news
+  description: Shows the Weather Story from the National Weather Service office that covers your location, the graphics forecasters post to explain the weather that matters most in the days ahead. Choose whether to show the office's lead story or rotate through every story it has posted.
+  github_url: https://github.com/leoherzog/trmnl-wxstory
+  learn_more_url: https://www.weather.gov/
+- keyname: location
+  field_type: lat_lon
+  name: Location
+  description: Search for a US city or postal code, or enter a comma-separated latitude and longitude. The NWS forecast office that covers it supplies the Weather Story.
+  help_text: Not every NWS office posts a Weather Story. When yours doesn't, the screen says so.
+  default: 42.9634,-85.6681
+- keyname: story
+  field_type: select
+  name: Story
+  description: Which story to show when the office has posted more than one
+  options:
+  - Lead story: lead
+  - Rotate through all stories: rotate
+  default: lead
+- keyname: timemode
+  field_type: select
+  name: Time Format
+  description: How the update time is shown
+  options:
+  - 12-hour: 12_hour
+  - 24-hour: 24_hour
+  default: 12_hour
