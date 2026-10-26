@@ -3,7 +3,7 @@
 The office's Weather Story at every size: the graphic, plus its description
 where the layout has room beside or below it.
 Parameters:
-- office: { id, name } from the transform, or nil when no office is set
+- office: the office's name from the transform, or nil when no office is set
 - story: { title, description, image, updated, number }, or nil with error set
 - count: how many stories the office has posted
 - error: why there is no story
@@ -20,7 +20,7 @@ Parameters:
 
 {% if story == nil %}
   <div class="layout layout--col layout--center gap">
-    <span class="title title--small lg:title--base text--center">{{ office.name | default: 'NWS Weather Story' | escape }}</span>
+    <span class="title title--small lg:title--base text--center">{{ office | default: 'NWS Weather Story' | escape }}</span>
     <span class="description lg:description--large text--center">{{ error | default: 'No data yet.' | escape }}</span>
   </div>
   {% render 'title_bar', office: office, size: size, trmnl: trmnl %}
@@ -38,7 +38,7 @@ Parameters:
     {% endif %}
   {% endif %}
   {% assign position = nil %}
-  {% if fields.story == 'rotate' and count > 1 %}
+  {% if fields.story != 'lead' and count > 1 %}
     {% assign position = story.number | append: ' of ' | append: count %}
   {% endif %}
   {% assign alt = story.title | default: 'Weather Story' | escape %}
@@ -77,15 +77,15 @@ Parameters:
 {% template title_bar %}
 {% comment %}
 Parameters:
-- office: { id, name }, or nil; the plugin's name stands in when nil
+- office: the office's name, or nil; the plugin's name stands in when nil
 - story_title: the story title, or nil
-- position: "2 of 3" while rotating, or nil
+- position: "2 of 3" while rotating or random, or nil
 - updated: when the graphic was replaced, already formatted, or nil
 - size: the layout size; half_vertical, quadrant and portrait screens show the office alone
 - trmnl: the global trmnl object
 {% endcomment %}
-{% if office.name %}
-  {% assign title = 'NWS ' | append: office.name %}
+{% if office %}
+  {% assign title = 'NWS ' | append: office %}
 {% else %}
   {% assign title = trmnl.plugin_settings.instance_name | default: 'NWS Weather Story' %}
 {% endif %}

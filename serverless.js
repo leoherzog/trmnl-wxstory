@@ -9,7 +9,7 @@
 // the other. A failed poll is refetched here, and a known office outlives an API outage.
 //
 // Output: { office, story, count, error, trmnl_state }, consumed by shared.liquid.
-//   office: { id, name }, or null when no office covers the location.
+//   office: the office's name, its id when the name is unknown, or null when no office covers the location.
 //   story: { title, description, image, updated, number }, or null with an error.
 //   count: how many stories the office has posted.
 //   trmnl_state: what the next run starts from; TRMNL strips it from the merge variables.
@@ -22,19 +22,14 @@ const PAGES = {
   home: (id) => `${SITE}/${id}/`,
 };
 
-// The run is cut off at 5 s. All requests share this budget, so a slow
-// weather.gov fails the request in flight instead of the whole run.
+// The run is cut off at 5 s. All requests share one signal with this deadline,
+// so a slow weather.gov fails the request in flight instead of the whole run.
 const BUDGET_MS = 4500;
 
 const ENTITIES = {
   amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', deg: '°', hellip: '…',
   ndash: '–', mdash: '—', lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”',
 };
-
-function budget(ms) {
-  const end = Date.now() + ms;
-  return () => AbortSignal.timeout(Math.max(1, end - Date.now()));
-}
 
 // "42.963412, -85.668086" or "42.96 -85.67" -> "42.9634,-85.6681"; null when unparseable.
 // api.weather.gov redirects any point given to more than 4 decimals.
@@ -112,7 +107,7 @@ async function findOffice(input, point, state, signal) {
   const polled = input && input.properties && input.properties.cwa;
   if (polled) return polled.toLowerCase();
   if (state.location === point && state.office) return state.office;
-  const res = await fetch(`${API}/points/${point}`, { headers: HEADERS, signal: signal() });
+  const res = await fetch(`${API}/points/${point}`, { headers: HEADERS, signal });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`api.weather.gov answered ${res.status}`);
   const body = await res.json();
@@ -125,7 +120,7 @@ async function loadStories(id, first, signal) {
   const order = first === 'home' ? ['home', 'weatherstory'] : ['weatherstory', 'home'];
   let name = null;
   for (const page of order) {
-    const res = await fetch(PAGES[page](id), { headers: HEADERS, signal: signal() });
+    const res = await fetch(PAGES[page](id), { headers: HEADERS, signal });
     if (res.status === 404) continue;
     if (!res.ok) throw new Error(`weather.gov answered ${res.status}`);
     const html = await res.text();
@@ -145,7 +140,7 @@ function fullSize(url) {
 async function resolveImage(url, signal) {
   for (const candidate of new Set([fullSize(url), url])) {
     try {
-      const res = await fetch(candidate, { method: 'HEAD', headers: HEADERS, signal: signal() });
+      const res = await fetch(candidate, { method: 'HEAD', headers: HEADERS, signal });
       if (!res.ok) continue;
       const modified = res.headers.get('last-modified');
       const date = modified ? new Date(modified) : null;
@@ -165,7 +160,7 @@ async function run(input) {
   if (!point) {
     return { office: null, story: null, count: 0, error: 'Set a location in the plugin settings.' };
   }
-  const signal = budget(BUDGET_MS);
+  const signal = AbortSignal.timeout(BUDGET_MS);
 
   let id;
   try {
@@ -181,15 +176,19 @@ async function run(input) {
   try {
     found = await loadStories(id, state.office === id ? state.page : null, signal);
   } catch (e) {
-    return { office: { id: id.toUpperCase(), name: null }, story: null, count: 0, error: 'weather.gov is unavailable right now.' };
+    return { office: id.toUpperCase(), story: null, count: 0, error: 'weather.gov is unavailable right now.' };
   }
-  const office = { id: id.toUpperCase(), name: found.name };
+  const office = found.name || id.toUpperCase();
   if (!found.stories.length) {
     return { office, story: null, count: 0, error: 'This office has no Weather Story posted right now.', trmnl_state: { location: point, office: id } };
   }
 
+  const n = found.stories.length;
+  const next = state.office === id ? Number(state.next) || 0 : 0;
   let index = 0;
-  if (fields.story === 'rotate' && state.office === id) index = (Number(state.next) || 0) % found.stories.length;
+  if (fields.story === 'rotate') index = next % n;
+  // Any story but the one on screen, which sits just before `next`.
+  if (fields.story === 'random') index = (next + Math.floor(Math.random() * (n - 1))) % n;
   const story = found.stories[index];
 
   // Offices overwrite the same file name with each new graphic, so the version
@@ -201,7 +200,7 @@ async function run(input) {
   return {
     office,
     story: { ...story, image: src, updated, number: index + 1 },
-    count: found.stories.length,
+    count: n,
     error: null,
     trmnl_state: { location: point, office: id, page: found.page, next: index + 1 },
   };

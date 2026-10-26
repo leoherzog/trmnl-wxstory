@@ -2,7 +2,7 @@
   name: About This Plugin
   field_type: author_bio
   category: environment,news
-  description: Shows the Weather Story from the National Weather Service office that covers your location, the graphics forecasters post to explain the weather that matters most in the days ahead. Choose whether to show the office's lead story or rotate through every story it has posted.
+  description: Shows the Weather Story from the National Weather Service office that covers your location, the graphics forecasters post to explain the weather that matters most in the days ahead. Choose the office's lead story, rotate through every story it has posted, or show a random one.
   github_url: https://github.com/leoherzog/trmnl-wxstory
   learn_more_url: https://www.weather.gov/
 - keyname: location
@@ -16,9 +16,10 @@
   name: Story
   description: Which story to show when the office has posted more than one
   options:
-  - Lead story: lead
+  - Lead story only: lead
   - Rotate through all stories: rotate
-  default: lead
+  - Random story on each refresh: random
+  default: rotate
 - keyname: timemode
   field_type: select
   name: Time Format

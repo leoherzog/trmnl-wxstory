@@ -8,8 +8,8 @@ A TRMNL private plugin (plugin setting **520302**, framework 3.4.4) showing the 
 - **Transform:** `serverless.js`, uploaded to the `transform_js` slot (serverless Node runtime, `run(input)`). The office is `properties.cwa`, not `gridId`: Anchorage answers `cwa: AFC`, `gridId: AER`. A failed poll is refetched with the point rounded to 4 decimals.
 - **Pages:** offices post stories at `/{office}/weatherstory` or on their home page `/{office}/`, so the transform tries the page that last had stories, then the other. Paths are case-insensitive and neither redirects. Some offices post no stories at all; the screen says so.
 - **Images:** a HEAD request gives `Last-Modified`, shown as the update time and appended as `?v=`. Offices overwrite the same file name, so the version is what changes the merge variables when the graphic changes. `graphicast/smallN.png` is a 725x408 thumbnail of `graphicast/N.png`; the transform uses the full size when it exists.
-- **Saved state:** `trmnl_state` is `{ location, office, page, next }`. It skips the points lookup when the API is down, sends the next run to the right page first, and drives rotation.
-- **Output:** `{ office, story, count, error, trmnl_state }`. `story` carries `title`, `description`, `image`, `updated` (ISO-8601) and `number`.
+- **Saved state:** `trmnl_state` is `{ location, office, page, next }`. It skips the points lookup when the API is down, sends the next run to the right page first, drives rotation, and keeps `random` from repeating the story on screen.
+- **Output:** `{ office, story, count, error, trmnl_state }`. `office` is the office's name, or its id when the name is unknown. `story` carries `title`, `description`, `image`, `updated` (ISO-8601) and `number`.
 - All requests share a 4.5 s budget under the 5 s run limit.
 
 ## weather.gov page structure
@@ -21,7 +21,7 @@ A TRMNL private plugin (plugin setting **520302**, framework 3.4.4) showing the 
 
 ## Custom fields
 
-`custom_fields.yml` holds `author_bio`, `location` (`lat_lon`, default Grand Rapids), `story` (`lead` or `rotate`) and `timemode`. Field values cannot be written through the TRMNL API. TRMNL applies defaults at run time without storing them, and does not poll while a required field has no value.
+`custom_fields.yml` holds `author_bio`, `location` (`lat_lon`, default Grand Rapids), `story` (`lead`, `rotate` or `random`) and `timemode`. Field values cannot be written through the TRMNL API. TRMNL applies defaults at run time without storing them, and does not poll while a required field has no value.
 
 ## Templates
 
@@ -29,7 +29,7 @@ All markup is in `shared.liquid`; each size file is one `{% render 'main', ... %
 
 - Graphics carry `image image-dither image--contain`. `image-dither` is a marker that TRMNL's render pipeline acts on; the framework CSS does not dither. Local `trmnlp` PNGs are its own 1-bit conversion.
 - `full` is the graphic alone; in portrait the description follows it. `half_horizontal` puts the description beside the graphic, `half_vertical` below it. `quadrant` is the graphic alone.
-- The title bar shows `NWS {office}` as the title and `{story title} · n of N · Updated …` as the instance. The instance is dropped on `half_vertical`, `quadrant` and portrait screens, where it clips. `n of N` appears only while rotating.
+- The title bar shows `NWS {office}` as the title and `{story title} · n of N · Updated …` as the instance. The instance is dropped on `half_vertical`, `quadrant` and portrait screens, where it clips. `n of N` appears unless the story setting is `lead`.
 - The update time is a clock time when it is today and a date before that, computed in Liquid with `date: '%s' | plus: trmnl.user.utc_offset`.
 - The title bar logo is the inline NWS SVG from `../trmnl-nws-severe-weather`.
 
