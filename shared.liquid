@@ -48,21 +48,21 @@ Parameters:
     <div class="layout layout--col gap--medium portrait:layout--top">
       <img class="image image-dither image--contain w--full h--full portrait:h--auto" src="{{ story.image }}" alt="{{ alt }}">
       {% if story.description %}
-        <span class="description description--large lg:description--xlarge hidden portrait:block" data-clamp="12">{{ story.description | escape }}</span>
+        <span class="description description--large lg:description--xlarge hidden portrait:block" data-clamp="22" data-clamp-lg="20">{{ story.description | escape }}</span>
       {% endif %}
     </div>
   {% when 'half_horizontal' %}
     <div class="layout layout--row layout--left gap--medium">
-      <img class="image image-dither image--contain h--full" src="{{ story.image }}" alt="{{ alt }}">
+      <img class="image image-dither image--contain h--full portrait:w--full" src="{{ story.image }}" alt="{{ alt }}">
       {% if story.description %}
-        <span class="description description--large lg:description--xlarge stretch-x" data-clamp="6" data-clamp-lg="7">{{ story.description | escape }}</span>
+        <span class="description description--large lg:description--xlarge stretch-x portrait:hidden" data-clamp="6" data-clamp-lg="7">{{ story.description | escape }}</span>
       {% endif %}
     </div>
   {% when 'half_vertical' %}
     <div class="layout layout--col layout--top gap--medium">
       <img class="image image-dither image--contain w--full" src="{{ story.image }}" alt="{{ alt }}">
       {% if story.description %}
-        <span class="description description--large lg:description--xlarge" data-clamp="8" data-clamp-lg="9">{{ story.description | escape }}</span>
+        <span class="description description--large lg:description--xlarge" data-clamp="8" data-clamp-portrait="29" data-clamp-lg="14" data-clamp-lg-portrait="30">{{ story.description | escape }}</span>
       {% endif %}
     </div>
   {% else %}

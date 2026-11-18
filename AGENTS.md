@@ -28,7 +28,8 @@ A TRMNL private plugin (plugin setting **520302**, framework 3.4.4) showing the 
 All markup is in `shared.liquid`; each size file is one `{% render 'main', ... %}`. Partials: `main`, `title_bar`. Framework classes only.
 
 - Graphics carry `image image-dither image--contain`. `image-dither` is a marker that TRMNL's render pipeline acts on; the framework CSS does not dither. Local `trmnlp` PNGs are its own 1-bit conversion.
-- `full` is the graphic alone; in portrait the description follows it. `half_horizontal` puts the description beside the graphic, `half_vertical` below it. `quadrant` is the graphic alone.
+- `full` is the graphic alone; in portrait the description follows it. `half_horizontal` puts the description beside the graphic; in portrait there is no room beside it, so the graphic spans the width and the description is dropped. `half_vertical` puts the description below the graphic. `quadrant` is the graphic alone.
+- Description clamps are line counts per size and orientation (`data-clamp-lg-portrait` and the like), set to fill the space below a 16:9 graphic. The clamp engine does not fit text to the space left, so a taller graphic clips the last lines.
 - The title bar shows `NWS {office}` as the title and `{story title} · n of N · Updated …` as the instance. The instance is dropped on `half_vertical`, `quadrant` and portrait screens, where it clips. `n of N` appears unless the story setting is `lead`.
 - The update time is a clock time when it is today and a date before that, computed in Liquid with `date: '%s' | plus: trmnl.user.utc_offset`.
 - The title bar logo is the inline NWS SVG from `../trmnl-nws-severe-weather`.
